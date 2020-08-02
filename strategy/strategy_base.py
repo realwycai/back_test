@@ -1,0 +1,79 @@
+# -*- coding: UTF-8 -*-
+"""
+@author: wycai@pku.edu.cn
+"""
+
+import backtrader as bt
+import warnings
+
+
+class DailyBackTestBase(bt.Strategy):
+    params = dict()
+
+    def log(self, txt, dt=None):
+        """
+        Logging function fot this strategy
+        """
+        dt = dt or self.datas[0].datetime.date(0)
+        print('%s, %s' % (dt.isoformat(), txt))
+
+    def __init__(self):
+        pass
+
+    def prenext(self):
+        self.log('This trading date is passed and ignored')
+        super(DailyBackTestBase, self).prenext()
+
+    def buy(self, data=None, size=None, **kwargs):
+        if size % 100 !=0:
+            warnings.warn(f'Input Size {size} can not be divided by 100, it has been rounded to nearest multiplies of 100.')
+            size = round(size/100)*100
+        if isinstance(data, str):
+            data = self.getdatabyname(data)
+        if data.close[0] > 1.098 * data.close[-1]:
+            self.log('Fail to buy %s due to Buy Trading Limit'%(data._name))
+            return None
+        else:
+            super(DailyBackTestBase, self).buy(data=data, size=size, exectype=bt.Order.Close, **kwargs)
+
+    def sell(self, data=None, size=None, **kwargs):
+        if size % 100 !=0:
+            warnings.warn(f'Input Size {size} can not be divided by 100, it has been rounded to nearest multiplies of 100.')
+            size = round(size / 100) * 100
+        if isinstance(data, str):
+            data = self.getdatabyname(data)
+        if data.close[0] < 0.902 * data.close[-1]:
+            self.log('Fail to buy %s due to Sell Trading Limit'%(data._name))
+            return None
+        else:
+            super(DailyBackTestBase, self).sell(data=data, size=size, exectype=bt.Order.Close, **kwargs)
+
+    def next(self, *args, **kwargs):
+        pass
+
+    def notify_order(self, order):
+        if order.status in [order.Submitted, order.Accepted]:
+            # Buy/Sell order submitted/accepted to/by broker - Nothing to do
+            return
+
+        # Check if an order has been completed
+        # Attention: broker could reject order if not enougth cash
+        if order.status in [order.Completed, order.Canceled, order.Margin]:
+            if order.isbuy():
+                self.log(
+                    'BUY EXECUTED, Stock: %s, Price: %.2f, Cost: %.2f, Comm %.2f' %
+                    (order.params.data._name,
+                     order.executed.price,
+                     order.executed.value,
+                     order.executed.comm))
+            else:  # Sell
+                self.log('SELL EXECUTED, Stock: %s, Price: %.2f, Cost: %.2f, Comm %.2f' %
+                         (order.params.data._name,
+                          order.executed.price,
+                          order.executed.value,
+                          order.executed.comm))
+
+    def notify_trade(self, trade):
+        if trade.isclosed:
+            self.log('TRADE PROFIT, GROSS %.2f, NET %.2f' %
+                     (trade.pnl, trade.pnlcomm))
