@@ -6,9 +6,10 @@ e-mail: wycai@pku.edu.cn
 
 import pandas as pd
 import pymysql
-from WindPy import w
+import os
+if os.name == 'nt':
+    from WindPy import w
 from sqlalchemy import create_engine
-
 from configs.password import *
 from datas.data_type import DataType
 

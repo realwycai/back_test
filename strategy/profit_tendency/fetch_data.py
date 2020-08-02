@@ -12,7 +12,7 @@ def fetch_index_change():
     index_io = WSETData(data_type = "indexhistory",
                         field = "startdate=2010-06-26;enddate=2020-07-26;windcode=000016.SH;field=tradedate,tradecode,tradename,tradestatus",
                         table_name = 'component_change',
-                        db_name = 'index',
+                        db_name = 'index_related',
                        )
     index_io.fetch_data()
     index_io.to_mysql()
@@ -67,7 +67,7 @@ def fetch_index_component():
                          data_type = DataType.index_component,
                          field = f"date={trading_date.strftime('%Y-%m-%d')};sectorid=a00103010b000000",
                          table_name = 'daily_component',
-                         db_name = 'index'
+                         db_name = 'index_related'
                          ))
         data_list[-1].fetch_data()
         data_list[-1].to_mysql()
