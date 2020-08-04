@@ -2,13 +2,15 @@
 """
 @author: wycai@pku.edu.cn
 """
+from datetime import datetime
 
 import backtrader as bt
 import warnings
+from tools.date import Date
 
 
 class DailyBackTestBase(bt.Strategy):
-    params = dict()
+    params = dict(position_adjust_dates= ['04-15', '07-15', '10-15', '01-15'])
 
     def log(self, txt, dt=None):
         """
@@ -18,7 +20,7 @@ class DailyBackTestBase(bt.Strategy):
         print('%s, %s' % (dt.isoformat(), txt))
 
     def __init__(self):
-        pass
+        self.position_adjust_dates = [Date(date_str=x) for x in self.p.position_adjust_dates]
 
     def prenext(self):
         self.log('This trading date is passed and ignored')
@@ -77,3 +79,8 @@ class DailyBackTestBase(bt.Strategy):
         if trade.isclosed:
             self.log('TRADE PROFIT, GROSS %.2f, NET %.2f' %
                      (trade.pnl, trade.pnlcomm))
+
+    def next_position_adjust_date(self, date: Date):
+        tmp = [x for x in self.position_adjust_dates if x>date]
+        next_adjust_dayint = min(tmp) if tmp else min(self.position_adjust_dates)
+        return next_adjust_dayint
