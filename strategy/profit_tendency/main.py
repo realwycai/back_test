@@ -68,13 +68,15 @@ class PTStrategy(DailyBackTestBase):
             pass
         self.next_adjust_date = self.next_position_adjust_date(trade_date)
 
-# %%
+
 if __name__ == '__main__':
-#%%
+    #%%
     # load data
     trading_data = DataBase(table_name = 'daily_trading', db_name = 'stock').from_mysql('*')
     trading_data['tradedate'] = pd.to_datetime(trading_data['tradedate'])
     trading_data['openinterest'] = 0
+    bench_data = trading_data[trading_data.tradecode == '000016.SH'].reset_index(drop=True)
+    trading_data = trading_data[trading_data.tradecode != '000016.SH'].reset_index(drop=True)
     income_data = DataBase(table_name = 'income_sheet', db_name = 'stock').from_mysql('NETPROFIT_TTM2, QFA_NP_BELONGTO_PARCOMSH, tradecode, tradedate')
     income_data['tradedate'] = pd.to_datetime(income_data['tradedate'])
     income_data['profit_acceleration'] = None
@@ -112,6 +114,9 @@ if __name__ == '__main__':
         data = data.set_index('tradedate').drop('tradecode', axis=1)
         cerebro.adddata(IncomeData(dataname=data, plot=False), name=windcode)
         cerebro.datas[-1].csv = False
+    bench_data = bench_data.set_index('tradedate').drop('tradecode', axis=1)
+    bench_data_feeds = bt.feeds.PandasData(dataname=bench_data)
+    cerebro.adddata(bench_data_feeds, name='000016.SH')
     cerebro.broker.setcommission(commission=0.0005)
     cerebro.broker.setcash(1000000.0)
 
@@ -122,7 +127,8 @@ if __name__ == '__main__':
     cerebro.observers[-1][1].csv = False
     cerebro.addobserver(bt.observers.BuySell)
     cerebro.observers[-1][1].csv = False
-    # cerebro.addobserver(bt.observers.Benchmark, data=benchdata, timeframe=TIMEFRAMES[args.timeframe])
+    cerebro.addobserver(bt.observers.Benchmark, data=bench_data_feeds, timeframe=bt.TimeFrame.NoTimeFrame)
+    cerebro.observers[-1][1].csv = True
     cerebro.addobserver(bt.observers.DrawDown)
     cerebro.observers[-1][1].csv = False
 
