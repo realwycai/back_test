@@ -25,8 +25,8 @@ class Date:
             assert day, 'day can not be None.'
             self.day = day
 
-    def to_str(self):
-        if self.year:
+    def to_str(self, show_year: bool = True):
+        if self.year and show_year:
             return '%04d-%02d-%02d' % (self.year, self.month, self.day)
         else:
             return '%02d-%02d' % (self.month, self.day)

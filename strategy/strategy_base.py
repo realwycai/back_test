@@ -10,7 +10,7 @@ from tools.date import Date
 
 
 class DailyBackTestBase(bt.Strategy):
-    params = dict(position_adjust_dates= ['04-15', '07-15', '10-15', '01-15'])
+    params = dict(position_adjust_dates=['04-15', '07-15', '10-15', '01-15'])
 
     def log(self, txt, dt=None):
         """
@@ -27,25 +27,27 @@ class DailyBackTestBase(bt.Strategy):
         super(DailyBackTestBase, self).prenext()
 
     def buy(self, data=None, size=None, **kwargs):
-        if size % 100 !=0:
-            warnings.warn(f'Input Size {size} can not be divided by 100, it has been rounded to nearest multiplies of 100.')
-            size = round(size/100)*100
+        if size % 100 != 0:
+            warnings.warn(
+                f'Input Size {size} can not be divided by 100, it has been rounded to nearest multiplies of 100.')
+            size = round(size / 100) * 100
         if isinstance(data, str):
             data = self.getdatabyname(data)
         if data.close[0] > 1.098 * data.close[-1]:
-            self.log('Fail to buy %s due to Buy Trading Limit'%(data._name))
+            self.log('Fail to buy %s due to Buy Trading Limit' % (data._name))
             return None
         else:
             super(DailyBackTestBase, self).buy(data=data, size=size, exectype=bt.Order.Close, **kwargs)
 
     def sell(self, data=None, size=None, **kwargs):
-        if size % 100 !=0:
-            warnings.warn(f'Input Size {size} can not be divided by 100, it has been rounded to nearest multiplies of 100.')
+        if size % 100 != 0:
+            warnings.warn(
+                f'Input Size {size} can not be divided by 100, it has been rounded to nearest multiplies of 100.')
             size = round(size / 100) * 100
         if isinstance(data, str):
             data = self.getdatabyname(data)
         if data.close[0] < 0.902 * data.close[-1]:
-            self.log('Fail to buy %s due to Sell Trading Limit'%(data._name))
+            self.log('Fail to buy %s due to Sell Trading Limit' % (data._name))
             return None
         else:
             super(DailyBackTestBase, self).sell(data=data, size=size, exectype=bt.Order.Close, **kwargs)
@@ -80,7 +82,7 @@ class DailyBackTestBase(bt.Strategy):
             self.log('TRADE PROFIT, GROSS %.2f, NET %.2f' %
                      (trade.pnl, trade.pnlcomm))
 
-    def next_position_adjust_date(self, date: Date):
-        tmp = [x for x in self.position_adjust_dates if x>date]
+    def get_next_position_adjust_date(self, date: Date):
+        tmp = [x for x in self.position_adjust_dates if x > date]
         next_adjust_dayint = min(tmp) if tmp else min(self.position_adjust_dates)
         return next_adjust_dayint
