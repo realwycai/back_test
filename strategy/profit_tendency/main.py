@@ -25,17 +25,6 @@ class IncomeData(bt.feeds.PandasData):
 class PTStrategy(DailyBackTestBase):
     params = dict(stock_num=6, start_date=None, end_date=None)
 
-    def __init__(self):
-        self.pre_buylist = []
-        self.rank_dict = dict()
-        self.next_adjust_date = None
-        super(PTStrategy, self).__init__()
-
-    def nextstart(self):
-        trade_date = Date(self.data.datetime.date().strftime('%Y-%m-%d'))
-        self.next_adjust_date = self.get_next_position_adjust_date(trade_date)
-        super(DailyBackTestBase, self).nextstart()
-
     def next(self):
         trade_date = Date(self.data.datetime.date().strftime('%Y-%m-%d'))
         if trade_date >= self.next_adjust_date and \

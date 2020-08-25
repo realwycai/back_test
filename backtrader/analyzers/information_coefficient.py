@@ -30,12 +30,14 @@ class IC(bt.Analyzer):
     def create_analysis(self):
         self.rets = bt.AutoOrderedDict()
 
+    def nextstart(self):
+        self.strategy.rank_dict = dict()
+
     def stop(self):
-        try:
-            rank_dict = self.strategy.rank_dict
-        except NameError:
+        if not self.strategy.rank_dict:
             self.rets['Error'] = 'Your forget to add rank_dict in your strategy!'
-            rank_dict = None
+        else:
+            rank_dict = self.strategy.rank_dict
 
         last_i: int = -1
         last_dt: str = ''

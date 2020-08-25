@@ -10,7 +10,24 @@ from tools.date import Date
 
 
 class DailyBackTestBase(bt.Strategy):
-    params = dict(position_adjust_dates=['04-15', '07-15', '10-15', '01-15'])
+    params = dict(position_adjust_dates=['04-15', '07-15', '10-15', '01-15'], start_date=None, end_date=None)
+
+    def __init__(self):
+        self.position_adjust_dates = [Date(date_str=x) for x in self.p.position_adjust_dates]
+        self.pre_buylist = []
+        self.next_adjust_date = None
+
+    def prenext(self):
+        self.log('This trading date is passed and ignored')
+        super(DailyBackTestBase, self).prenext()
+
+    def nextstart(self):
+        trade_date = Date(self.data.datetime.date().strftime('%Y-%m-%d'))
+        self.next_adjust_date = self.get_next_position_adjust_date(trade_date)
+        super(DailyBackTestBase, self).nextstart()
+
+    def next(self, *args, **kwargs):
+        pass
 
     def log(self, txt, dt=None):
         """
@@ -18,13 +35,6 @@ class DailyBackTestBase(bt.Strategy):
         """
         dt = dt or self.datas[0].datetime.date(0)
         print('%s, %s' % (dt.isoformat(), txt))
-
-    def __init__(self):
-        self.position_adjust_dates = [Date(date_str=x) for x in self.p.position_adjust_dates]
-
-    def prenext(self):
-        self.log('This trading date is passed and ignored')
-        super(DailyBackTestBase, self).prenext()
 
     def buy(self, data=None, size=None, **kwargs):
         if size % 100 != 0:
@@ -51,9 +61,6 @@ class DailyBackTestBase(bt.Strategy):
             return None
         else:
             super(DailyBackTestBase, self).sell(data=data, size=size, exectype=bt.Order.Close, **kwargs)
-
-    def next(self, *args, **kwargs):
-        pass
 
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:

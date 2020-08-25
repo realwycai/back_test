@@ -1,20 +1,12 @@
-import os
 import pandas as pd
 import psycopg2
 import numpy as np
 import time
-import CORN_K
-import Symmetric_CORN_K
-import Functional_CORN_K
+from strategy.pattern_match.run_type import RunType
 
-os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
-
-
-# 以上证50 000016.SH 在2010年初20100104的流通市值前30支股为dataset
-# 测试HSI
 # 在上证50中动态选股
 
-def main():
+def run(type: RunType):
     W = [1, 4, 7, 10, 15]
     Pho = [0,  0.3, 0.5]
     Lambda = [10, 100, 500]
@@ -38,18 +30,9 @@ def main():
     price_daily = price_daily.sort_values(by=['trade_dt', 's_info_windcode']).rename(columns={'s_dq_adjclose': 'ratio_dq_price'})
     trade_dt = price_daily.trade_dt.drop_duplicates().sort_values(ascending=True).reset_index(drop=True)
     price_daily_wide = price_daily.pivot(index='trade_dt', columns='s_info_windcode', values='ratio_dq_price')
-    # 选择股票范围 恒生指数
-    # price_daily_wide=pd.read_excel('C:/Users/wycai/Desktop/中信/corn-K/IndexData.xlsx',sheet_name='price',header=3)
-    # price_daily_wide.Date=price_daily_wide.Date.apply(lambda x: str(x)[0:4]+str(x)[5:7]+str(x)[8:10])
-    # price_daily_wide.iloc[:,1:]=price_daily_wide.iloc[:,1:]/price_daily_wide.iloc[:,1:].shift(1)
-    # price_daily_wide=price_daily_wide.rename(columns={'Date':'trade_dt'})
-    # price_daily=price_daily_wide.melt(id_vars='trade_dt',var_name='s_info_windcode',value_name='ratio_dq_price')
-    # trade_dt = price_daily.trade_dt.drop_duplicates().sort_values(ascending=True).reset_index(drop=True)
-    # price_daily_wide=price_daily_wide.set_index('trade_dt')
     # 计算相关系数
     s_con_indate = index_component.s_con_indate.unique()
     s_con_indate.sort()
-    # s_con_indate = s_con_indate[(s_con_indate >= '20141215') & (s_con_indate <= '20160613')]
     s_con_indate = s_con_indate[s_con_indate >= '20090101']
     correlation = pd.DataFrame(columns=['coefficient', 's_con_indate', 'w'])
     for w in W:
@@ -69,10 +52,7 @@ def main():
     correlation['next_s_con_indate'] = temp.s_con_indate
     correlation.next_s_con_indate = correlation.next_s_con_indate.fillna('')
     # 计算收益
-    s1 = 10000
-    s2 = 10000
-    s3 = 10000
-    # portfolio = pd.DataFrame(columns=['trade_dt', 'portfolio1', 'RET1', 'portfolio2', 'RET2', 'portfolio3', 'RET3'])
+    s = 10000
     portfolio = pd.DataFrame(columns=['trade_dt', 'portfolio1', 'RET1'])
     start = time.time()
     for i in trade_dt[trade_dt[trade_dt == '20160104'].index.values[0]:trade_dt[trade_dt == '20181228'].index.values[0]]:
@@ -83,18 +63,20 @@ def main():
         correlation_temp = correlation.loc[
             (correlation.s_con_indate <= i) & ((correlation.next_s_con_indate > i) | (correlation.next_s_con_indate == '')), [
                 'coefficient', 'w']]
-        # temp1 = CORN_K.fetch_optimal_portfolio(i, W, Pho, k, price_daily_wide_temp, correlation_temp)
-        # s1 = s1 * np.dot(temp1, price_daily_wide_temp.loc[price_daily_wide.index == i, :].T)
-        temp2 = Symmetric_CORN_K.fetch_optimal_portfolio(i, W, Pho, k, price_daily_wide_temp, correlation_temp)
-        s2 = s2 * np.dot(temp2, price_daily_wide_temp.loc[price_daily_wide.index == i, :].T)
-        # temp3 = Functional_CORN_K.fetch_optimal_portfolio(i, W, Pho, Lambda, k, price_daily_wide_temp, correlation_temp)
-        # s3 = s3 * np.dot(temp3, price_daily_wide_temp.loc[price_daily_wide.index == i, :].T)
-        # portfolio = portfolio.append(
-        #     {'trade_dt': i, 'portfolio1': temp1, 'RET1': s1[0], 'portfolio2': temp2, 'RET2': s2[0], 'portfolio3': temp3,
-        #      'RET3': s3[0]},
-        #     ignore_index=True, sort=True)
-        portfolio = portfolio.append({'trade_dt': i, 'portfolio1': temp2, 'RET1': s2[0]}, ignore_index=True, sort=True)
-        # print('datachar= ' + i + ' has finished, s1 is ' + str(s1[0]) + ' s2 is ' + str(s2[0]) + ' s3 is ' + str(s3[0]))
+        if type == RunType.CORN_K:
+            temp = fetch_optimal_portfolio(i, W, Pho, k, price_daily_wide_temp, correlation_temp)
+        elif type == RunType.Symmetric_CORN_K:
+            temp = fetch_optimal_portfolio(i, W, Pho, k, price_daily_wide_temp, correlation_temp)
+        else:
+            temp = fetch_optimal_portfolio(i, W, Pho, Lambda, k, price_daily_wide_temp, correlation_temp)
+        s = s * np.dot(temp, price_daily_wide_temp.loc[price_daily_wide.index == i, :].T)
+        if type == RunType.Functional_CORN_K:
+            portfolio = portfolio.append(
+                {'trade_dt': i, 'portfolio1': temp1, 'RET1': s1[0], 'portfolio2': temp2, 'RET2': s2[0], 'portfolio3': temp3,
+                 'RET3': s3[0]},
+                ignore_index=True, sort=True)
+        else:
+            portfolio = portfolio.append({'trade_dt': i, 'portfolio1': temp2, 'RET1': s2[0]}, ignore_index=True, sort=True)
         print('datachar= ' + i + ' has finished, s1 is ' + str(s2[0]))
         end = time.time()
         print('time cost is ' + str((end - start).__round__(2)))
@@ -103,4 +85,11 @@ def main():
 
 
 if __name__ == '__main__':
-    a = main()
+    type = RunType.CORN_K
+    if type == RunType.CORN_K:
+        from strategy.pattern_match.corn_k import fetch_optimal_portfolio
+    elif type == RunType.Symmetric_CORN_K:
+        from strategy.pattern_match.symmetric_corn_k import fetch_optimal_portfolio
+    else:
+        from strategy.pattern_match.functional_corn_k import fetch_optimal_portfolio
+    run(type)
